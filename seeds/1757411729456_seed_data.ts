@@ -3,6 +3,8 @@ import { faker } from "@faker-js/faker";
 import type { Kysely } from "kysely";
 
 export async function seed(db: Kysely<DB>): Promise<void> {
+  await db.deleteFrom("playlists_songs").execute();
+  await db.deleteFrom("playlists").execute();
   await db.deleteFrom("songs").execute();
   await db.deleteFrom("albums").execute();
   await db.deleteFrom("authors").execute();
@@ -63,6 +65,35 @@ export async function seed(db: Kysely<DB>): Promise<void> {
           album_id: album.id,
           name: faker.music.songName(),
           duration: faker.number.int({ min: 90, max: 240 }),
+        })
+        .execute();
+    }
+  }
+
+  const songs = await db.selectFrom("songs").select("id").execute();
+  const songIds = songs.map(s => s.id);
+
+  for (let i = 0; i < 15; i += 1) {
+    await db
+      .insertInto("playlists")
+      .values({
+        name: faker.lorem.words(3),
+      })
+      .execute();
+  }
+
+  const playlists = await db.selectFrom("playlists").selectAll().execute();
+
+  for (const playlist of playlists) {
+    const numSongs = faker.number.int({ min: 5, max: 20 });
+    const selectedSongs = faker.helpers.arrayElements(songIds, numSongs);
+
+    for (const songId of selectedSongs) {
+      await db
+        .insertInto("playlists_songs")
+        .values({
+          playlist_id: playlist.id,
+          song_id: songId,
         })
         .execute();
     }

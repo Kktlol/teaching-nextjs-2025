@@ -36,6 +36,9 @@ export function NavBar() {
         >
           Search
         </Link>
+        <Link href="/playlists" className="btn btn-ghost text-xl">
+          Playlists
+        </Link>
       </div>
     </div>
   );
