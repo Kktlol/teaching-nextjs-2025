@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { LikeSongButton } from "@/components/LikeSongButton";
 import { AddSongToPlaylistButton } from "@/app/album/[id]/AddSongToPlaylistButton";
+import { recordPlaybackStart, recordPlaybackEnd, recordPlaybackSkip } from "@/actions/playback_events";
 
 interface Song {
   id: number;
@@ -67,6 +68,10 @@ export function PlaybackBar(props: {
   const currentSong = playbackStatus.queue.at(playbackStatus.currentSongIndex);
 
   function startPlayback() {
+    if (currentSong) { recordPlaybackStart(currentSong.id); }
+    if (currentSong) {
+      recordPlaybackStart(currentSong.id);
+    }
     setPlaybackStatus(prev => ({ ...prev, isPlaying: true, playbackStart: { timestamp: Date.now(), progressAtStart: progress } }));
   }
 
@@ -108,6 +113,9 @@ export function PlaybackBar(props: {
   }
 
   function handleNext() {
+    if (currentSong && progress < currentSong.duration) {
+      recordPlaybackSkip(currentSong.id);
+    }
     setPlaybackStatus(prev => {
       if (prev.isShuffled) {
         const isLast = prev.shufflePosition >= prev.shuffleOrder.length - 1;
@@ -175,6 +183,7 @@ export function PlaybackBar(props: {
       const newProgress = playbackStart.progressAtStart + elapsed;
 
       if (newProgress >= currentSong.duration) {
+        recordPlaybackEnd(currentSong.id);
         handleNext();
       } else {
         setPlaybackStatus(prev => ({ ...prev, progress: newProgress }));
