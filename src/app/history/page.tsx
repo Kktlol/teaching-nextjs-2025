@@ -1,7 +1,10 @@
+import { assertSessionUserId } from "@/actions/login";
 import { getDb } from "@/lib/db";
 import Link from "next/link";
 
 export default async function HistoryPage() {
+  const userId = await assertSessionUserId();
+
   const db = getDb();
 
   const playbackHistory = await db
@@ -18,7 +21,7 @@ export default async function HistoryPage() {
       "albums.author_id",
       "authors.name as author_name",
     ])
-    .where("playback_events.user_id", "=", 1)
+    .where("playback_events.user_id", "=", userId)
     .where("playback_events.event_name", "=", "playback_end")
     .orderBy("playback_events.event_date", "desc")
     .execute();

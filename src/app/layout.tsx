@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { NavBar } from "./NavBar";
 import { PlaybackBar } from "./PlaybackBar";
+import { getSessionUserId } from "@/actions/login";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,6 +26,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const userId = await getSessionUserId();
+
   const db = getDb();
 
   const initialSongs = await db
@@ -40,17 +43,23 @@ export default async function RootLayout({
     .limit(5)
     .execute();
 
-  const likedSongIds = await db
-    .selectFrom("user_liked_songs")
-    .where("user_id", "=", 1)
-    .select("song_id")
-    .execute();
+  const likedSongIds =
+    userId != null
+      ? await db
+          .selectFrom("user_liked_songs")
+          .where("user_id", "=", userId)
+          .select("song_id")
+          .execute()
+      : null;
 
-  const playlists = await db
-    .selectFrom("playlists")
-    .where("user_id", "=", 1)
-    .select(["id", "name"])
-    .execute();
+  const playlists =
+    userId != null
+      ? await db
+          .selectFrom("playlists")
+          .where("user_id", "=", userId)
+          .select(["id", "name"])
+          .execute()
+      : null;
 
   console.log(initialSongs);
 
@@ -63,13 +72,15 @@ export default async function RootLayout({
         <div className="fixed top-0 left-0 right-0">
           <NavBar />
         </div>
-        <div className="fixed h-24 bg-base-100 bottom-0 left-0 right-0 inset-shadow-sm">
-          <PlaybackBar
-            initialSongs={initialSongs}
-            likedSongIds={likedSongIds.map((row) => row.song_id)}
-            playlists={playlists}
-          />
-        </div>
+        {likedSongIds != null && playlists != null ? (
+          <div className="fixed h-24 bg-base-100 bottom-0 left-0 right-0 inset-shadow-sm">
+            <PlaybackBar
+              initialSongs={initialSongs}
+              likedSongIds={likedSongIds.map((row) => row.song_id)}
+              playlists={playlists}
+            />
+          </div>
+        ) : null}
       </body>
     </html>
   );

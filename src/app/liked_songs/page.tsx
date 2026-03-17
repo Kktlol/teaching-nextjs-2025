@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db";
 import Link from "next/link";
 import { RemoveLikeButton } from "./RemoveLikeButton";
+import { assertSessionUserId } from "@/actions/login";
 
 function formatDuration(duration: number): string {
   const minutes = Math.floor(duration / 60);
@@ -10,6 +11,8 @@ function formatDuration(duration: number): string {
 }
 
 export default async function LikedSongsPage() {
+  const userId = await assertSessionUserId();
+
   const db = getDb();
 
   const likedSongs = await db
@@ -27,7 +30,7 @@ export default async function LikedSongsPage() {
       "albums.author_id",
       "authors.name as author_name",
     ])
-    .where("user_liked_songs.user_id", "=", 1)
+    .where("user_liked_songs.user_id", "=", userId)
     .execute();
 
   return (

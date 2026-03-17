@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function NavBar() {
@@ -30,9 +30,9 @@ export function NavBar() {
           }}
           onKeyUp={(e) => {
             console.log("key pressed:", e.key);
-            if (e.key === 'Enter') {
+            if (e.key === "Enter") {
               // TODO - add proper code and sanitization
-              router.push(`/search?q=${searchInput}`)
+              router.push(`/search?q=${searchInput}`);
             }
           }}
         />
@@ -53,6 +53,9 @@ export function NavBar() {
         </Link>
         <Link href="/history" className="btn btn-ghost text-xl">
           History
+        </Link>
+        <Link href="/login" className="btn btn-ghost text-xl">
+          Login
         </Link>
       </div>
     </div>

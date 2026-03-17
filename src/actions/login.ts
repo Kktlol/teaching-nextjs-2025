@@ -1,8 +1,11 @@
 "use server";
 
 import { getDb } from "@/lib/db";
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+
+const SESSION_COOKIE_NAME = "session";
 
 export async function login(formData: FormData) {
   const email = formData.get("email");
@@ -41,7 +44,36 @@ export async function login(formData: FormData) {
 
   const cookieStore = await cookies();
 
-  cookieStore.set("session", user.id.toString());
-
+  cookieStore.set(SESSION_COOKIE_NAME, user.id.toString());
+  
+  revalidatePath("/");
   redirect("/");
+}
+
+export async function getSessionUserId() {
+  const cookieStore = await cookies();
+
+  const sessionUserId = cookieStore.get(SESSION_COOKIE_NAME);
+
+  if (sessionUserId == null) {
+    return null;
+  }
+
+  const userId = parseInt(sessionUserId.value);
+
+  if (isNaN(userId)) {
+    return null;
+  }
+
+  return userId;
+}
+
+export async function assertSessionUserId() {
+  const userId = await getSessionUserId();
+
+  if (userId == null) {
+    redirect("/login");
+  }
+
+  return userId;
 }

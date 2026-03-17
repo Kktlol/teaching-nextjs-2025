@@ -2,6 +2,7 @@ import { getDb } from "@/lib/db";
 import Link from "next/link";
 import { AddSongToPlaylistButton } from "./AddSongToPlaylistButton";
 import { LikeSongButton } from "@/components/LikeSongButton";
+import { getSessionUserId } from "@/actions/login";
 
 function formatDuration(duration: number): string {
   const minutes = Math.floor(duration / 60);
@@ -15,6 +16,8 @@ export default async function AlbumDetail({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const userId = await getSessionUserId();
+
   const db = getDb();
 
   const { id } = await params;
@@ -51,19 +54,26 @@ export default async function AlbumDetail({
     .where("album_id", "=", albumId)
     .execute();
 
-  const playlists = await db
-    .selectFrom("playlists")
-    .selectAll()
-    .where("user_id", "=", 1)
-    .execute();
+  const playlists =
+    userId != null
+      ? await db
+          .selectFrom("playlists")
+          .selectAll()
+          .where("user_id", "=", userId)
+          .execute()
+      : null;
 
-  const likedSongs = await db
-    .selectFrom("user_liked_songs")
-    .select("song_id")
-    .where("user_id", "=", 1)
-    .execute();
+  const likedSongs =
+    userId != null
+      ? await db
+          .selectFrom("user_liked_songs")
+          .select("song_id")
+          .where("user_id", "=", userId)
+          .execute()
+      : null;
 
-  const likedSongIds = new Set(likedSongs.map((ls) => ls.song_id));
+  const likedSongIds =
+    likedSongs != null ? new Set(likedSongs.map((ls) => ls.song_id)) : null;
 
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
@@ -89,14 +99,18 @@ export default async function AlbumDetail({
                   <td>{song.name}</td>
                   <td>{formatDuration(song.duration)}</td>
                   <td>
-                    <LikeSongButton
-                      songId={song.id}
-                      isLiked={likedSongIds.has(song.id)}
-                    />
-                    <AddSongToPlaylistButton
-                      playlists={playlists}
-                      songId={song.id}
-                    />
+                    {likedSongIds != null ? (
+                      <LikeSongButton
+                        songId={song.id}
+                        isLiked={likedSongIds.has(song.id)}
+                      />
+                    ) : null}
+                    {playlists != null ? (
+                      <AddSongToPlaylistButton
+                        playlists={playlists}
+                        songId={song.id}
+                      />
+                    ) : null}
                   </td>
                 </tr>
               ))}

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { RemovePlaylistSongButton } from "./RemovePlaylistSongButton";
 import { EditPlaylistButton } from "./EditPlaylistButton";
 import { LikeSongButton } from "@/components/LikeSongButton";
+import { getSessionUserId } from "@/actions/login";
 
 function formatDuration(duration: number): string {
   const minutes = Math.floor(duration / 60);
@@ -16,6 +17,8 @@ export default async function PlaylistPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const userId = await getSessionUserId();
+
   const { id } = await params;
 
   const playlistId = parseInt(id);
@@ -55,13 +58,17 @@ export default async function PlaylistPage({
     .where("playlists_songs.playlist_id", "=", playlist.id)
     .execute();
 
-  const likedSongs = await db
-    .selectFrom("user_liked_songs")
-    .select("song_id")
-    .where("user_id", "=", 1)
-    .execute();
+  const likedSongs =
+    userId != null
+      ? await db
+          .selectFrom("user_liked_songs")
+          .select("song_id")
+          .where("user_id", "=", userId)
+          .execute()
+      : null;
 
-  const likedSongIds = new Set(likedSongs.map((ls) => ls.song_id));
+  const likedSongIds =
+    likedSongs != null ? new Set(likedSongs.map((ls) => ls.song_id)) : null;
 
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
@@ -100,10 +107,12 @@ export default async function PlaylistPage({
                   </td>
                   <td>{formatDuration(song.duration)}</td>
                   <td>
-                    <LikeSongButton
-                      songId={song.song_id}
-                      isLiked={likedSongIds.has(song.song_id)}
-                    />
+                    {likedSongIds != null ? (
+                      <LikeSongButton
+                        songId={song.song_id}
+                        isLiked={likedSongIds.has(song.song_id)}
+                      />
+                    ) : null}
                     <RemovePlaylistSongButton
                       id={song.id}
                       playlistId={song.playlist_id}
