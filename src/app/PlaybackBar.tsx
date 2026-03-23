@@ -1,30 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { LikeSongButton } from "@/components/LikeSongButton";
 import { AddSongToPlaylistButton } from "@/app/album/[id]/AddSongToPlaylistButton";
-import { recordPlaybackStart, recordPlaybackEnd, recordPlaybackSkip } from "@/actions/playback_events";
-
-interface Song {
-  id: number;
-  name: string;
-  author: string;
-  duration: number;
-}
-
-interface PlaybackStatus {
-  queue: Song[];
-  currentSongIndex: number;
-  isPlaying: boolean;
-  progress: number;
-  playbackStart: {
-    timestamp: number;
-    progressAtStart: number;
-  } | null;
-  isShuffled: boolean;
-  shuffleOrder: number[];
-  shufflePosition: number;
-}
+import { LikeSongButton } from "@/components/LikeSongButton";
+import { useContext } from "react";
+import { PlaybackContext, Song } from "./playback-context";
 
 function formatDuration(duration: number): string {
   const minutes = Math.floor(duration / 60);
@@ -33,167 +12,22 @@ function formatDuration(duration: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-function shuffleIndices(length: number, excludeIndex: number): number[] {
-  const indices: number[] = [];
-  for (let i = 0; i < length; i++) {
-    if (i !== excludeIndex) {
-      indices.push(i);
-    }
-  }
-  for (let i = 0; i < indices.length * 3; i++) {
-    const a = Math.floor(Math.random() * indices.length);
-    const b = Math.floor(Math.random() * indices.length);
-    [indices[a], indices[b]] = [indices[b], indices[a]];
-  }
-  return [excludeIndex, ...indices];
-}
-
 export function PlaybackBar(props: {
   initialSongs: Song[];
   likedSongIds: number[];
   playlists: { id: number; name: string }[];
 }) {
-  const [playbackStatus, setPlaybackStatus] = useState<PlaybackStatus>({
-    queue: props.initialSongs,
-    currentSongIndex: 0,
-    isPlaying: false,
-    progress: 0,
-    playbackStart: null,
-    isShuffled: false,
-    shuffleOrder: [],
-    shufflePosition: 0,
-  });
-
-  const { isPlaying, progress, playbackStart, isShuffled } = playbackStatus;
-  const currentSong = playbackStatus.queue.at(playbackStatus.currentSongIndex);
-
-  function startPlayback() {
-    if (currentSong) { recordPlaybackStart(currentSong.id); }
-    if (currentSong) {
-      recordPlaybackStart(currentSong.id);
-    }
-    setPlaybackStatus(prev => ({ ...prev, isPlaying: true, playbackStart: { timestamp: Date.now(), progressAtStart: progress } }));
-  }
-
-  function pausePlayback() {
-    setPlaybackStatus(prev => ({ ...prev, isPlaying: false, playbackStart: null }));
-  }
-
-  function seekTo(newProgress: number) {
-    setPlaybackStatus(prev => ({ ...prev, progress: newProgress, playbackStart: prev.isPlaying ? { timestamp: Date.now(), progressAtStart: newProgress } : null }));
-  }
-
-  function togglePlayback() {
-    if (isPlaying) {
-      pausePlayback();
-    } else {
-      startPlayback();
-    }
-  }
-
-  function toggleShuffle() {
-    setPlaybackStatus(prev => {
-      if (prev.isShuffled) {
-        return {
-          ...prev,
-          isShuffled: false,
-          shuffleOrder: [],
-          shufflePosition: 0,
-        };
-      }
-
-      const newShuffleOrder = shuffleIndices(prev.queue.length, prev.currentSongIndex);
-      return {
-        ...prev,
-        isShuffled: true,
-        shuffleOrder: newShuffleOrder,
-        shufflePosition: 0,
-      };
-    });
-  }
-
-  function handleNext() {
-    if (currentSong && progress < currentSong.duration) {
-      recordPlaybackSkip(currentSong.id);
-    }
-    setPlaybackStatus(prev => {
-      if (prev.isShuffled) {
-        const isLast = prev.shufflePosition >= prev.shuffleOrder.length - 1;
-        if (isLast) {
-          return { ...prev, isPlaying: false, playbackStart: null };
-        }
-        const newShufflePosition = prev.shufflePosition + 1;
-        return {
-          ...prev,
-          shufflePosition: newShufflePosition,
-          currentSongIndex: prev.shuffleOrder[newShufflePosition],
-          progress: 0,
-          isPlaying: true,
-          playbackStart: { timestamp: Date.now(), progressAtStart: 0 },
-        };
-      }
-
-      const isLastSong = prev.currentSongIndex >= prev.queue.length - 1;
-
-      if (isLastSong) {
-        return { ...prev, isPlaying: false, playbackStart: null };
-      }
-
-      return { ...prev, currentSongIndex: prev.currentSongIndex + 1, progress: 0, isPlaying: true, playbackStart: { timestamp: Date.now(), progressAtStart: 0 } };
-    });
-  }
-
-  function handleBack() {
-    setPlaybackStatus(prev => {
-      if (prev.progress > 5) {
-        return { ...prev, progress: 0, playbackStart: prev.isPlaying ? { timestamp: Date.now(), progressAtStart: 0 } : null }
-      }
-
-      if (prev.isShuffled) {
-        const isFirst = prev.shufflePosition <= 0;
-        if (isFirst) {
-          return { ...prev, progress: 0, playbackStart: prev.isPlaying ? { timestamp: Date.now(), progressAtStart: 0 } : null }
-        }
-        const newShufflePosition = prev.shufflePosition - 1;
-        return {
-          ...prev,
-          shufflePosition: newShufflePosition,
-          currentSongIndex: prev.shuffleOrder[newShufflePosition],
-          progress: 0,
-          isPlaying: true,
-          playbackStart: { timestamp: Date.now(), progressAtStart: 0 },
-        };
-      }
-
-      const isFirstSong = prev.currentSongIndex <= 0;
-
-      if (isFirstSong) {
-        return { ...prev, progress: 0, playbackStart: prev.isPlaying ? { timestamp: Date.now(), progressAtStart: 0 } : null }
-      }
-
-      return { ...prev, currentSongIndex: prev.currentSongIndex - 1, progress: 0, isPlaying: true, playbackStart: { timestamp: Date.now(), progressAtStart: 0 } };
-    })
-  }
-
-  useEffect(() => {
-    if (!isPlaying || currentSong == null || playbackStart == null) return;
-
-    const interval = setInterval(() => {
-      const elapsed = (Date.now() - playbackStart.timestamp) / 1000;
-      const newProgress = playbackStart.progressAtStart + elapsed;
-
-      if (newProgress >= currentSong.duration) {
-        recordPlaybackEnd(currentSong.id);
-        handleNext();
-      } else {
-        setPlaybackStatus(prev => ({ ...prev, progress: newProgress }));
-      }
-    }, 100);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [isPlaying, currentSong, playbackStart]);
+  const {
+    isPlaying,
+    progress,
+    isShuffled,
+    currentSong,
+    togglePlayback,
+    seekTo,
+    handleNext,
+    handleBack,
+    toggleShuffle,
+  } = useContext(PlaybackContext);
 
   const duration = currentSong?.duration || 0;
   const currentProgress = Math.floor(progress);
@@ -218,7 +52,10 @@ export function PlaybackBar(props: {
 
       <div className="flex flex-col items-center gap-1 flex-1 max-w-xl">
         <div className="flex items-center gap-2">
-          <button className="btn btn-circle btn-sm btn-ghost" onClick={handleBack}>
+          <button
+            className="btn btn-circle btn-sm btn-ghost"
+            onClick={handleBack}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -262,7 +99,10 @@ export function PlaybackBar(props: {
             )}
           </button>
 
-          <button className="btn btn-circle btn-sm btn-ghost" onClick={handleNext}>
+          <button
+            className="btn btn-circle btn-sm btn-ghost"
+            onClick={handleNext}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -273,7 +113,9 @@ export function PlaybackBar(props: {
             </svg>
           </button>
 
-          <label className={`swap btn btn-circle btn-sm btn-ghost ${isShuffled ? 'btn-active' : ''}`}>
+          <label
+            className={`swap btn btn-circle btn-sm btn-ghost ${isShuffled ? "btn-active" : ""}`}
+          >
             <input
               type="checkbox"
               checked={isShuffled}

@@ -1,10 +1,11 @@
+import { getSessionUserId } from "@/actions/login";
 import { getDb } from "@/lib/db";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { NavBar } from "./NavBar";
 import { PlaybackBar } from "./PlaybackBar";
-import { getSessionUserId } from "@/actions/login";
+import { PlaybackContextProvider } from "./PlaybackContextProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -68,19 +69,21 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="pb-4">{children}</div>
-        <div className="fixed top-0 left-0 right-0">
-          <NavBar />
-        </div>
-        {likedSongIds != null && playlists != null ? (
-          <div className="fixed h-24 bg-base-100 bottom-0 left-0 right-0 inset-shadow-sm">
-            <PlaybackBar
-              initialSongs={initialSongs}
-              likedSongIds={likedSongIds.map((row) => row.song_id)}
-              playlists={playlists}
-            />
+        <PlaybackContextProvider initialSongs={initialSongs}>
+          <div className="pb-4">{children}</div>
+          <div className="fixed top-0 left-0 right-0">
+            <NavBar />
           </div>
-        ) : null}
+          {likedSongIds != null && playlists != null ? (
+            <div className="fixed h-24 bg-base-100 bottom-0 left-0 right-0 inset-shadow-sm">
+              <PlaybackBar
+                initialSongs={initialSongs}
+                likedSongIds={likedSongIds.map((row) => row.song_id)}
+                playlists={playlists}
+              />
+            </div>
+          ) : null}
+        </PlaybackContextProvider>
       </body>
     </html>
   );

@@ -1,7 +1,7 @@
+import { assertSessionUserId } from "@/actions/login";
 import { getDb } from "@/lib/db";
 import Link from "next/link";
 import { RemoveLikeButton } from "./RemoveLikeButton";
-import { assertSessionUserId } from "@/actions/login";
 
 function formatDuration(duration: number): string {
   const minutes = Math.floor(duration / 60);
