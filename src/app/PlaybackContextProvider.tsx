@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { PlaybackContext, Song } from "./playback-context";
 import {
   recordPlaybackEnd,
   recordPlaybackSkip,
 } from "@/actions/playback_events";
+import { useCallback, useEffect, useState } from "react";
+import { PlaybackContext, Song } from "./playback-context";
 
 interface PlaybackStatus {
   queue: Song[];
@@ -19,6 +19,7 @@ interface PlaybackStatus {
   isShuffled: boolean;
   shuffleOrder: number[];
   shufflePosition: number;
+  isRepeatOn: boolean;
 }
 
 function shuffleIndices(length: number, excludeIndex: number): number[] {
@@ -40,6 +41,16 @@ function handleNextPlaybackStatus(prev: PlaybackStatus): PlaybackStatus {
   if (prev.isShuffled) {
     const isLast = prev.shufflePosition >= prev.shuffleOrder.length - 1;
     if (isLast) {
+      if (prev.isRepeatOn) {
+        return {
+          ...prev,
+          shufflePosition: 0,
+          currentSongIndex: prev.shuffleOrder[0],
+          progress: 0,
+          isPlaying: true,
+          playbackStart: { timestamp: Date.now(), progressAtStart: 0 },
+        };
+      }
       return { ...prev, isPlaying: false, playbackStart: null };
     }
     const newShufflePosition = prev.shufflePosition + 1;
@@ -56,6 +67,15 @@ function handleNextPlaybackStatus(prev: PlaybackStatus): PlaybackStatus {
   const isLastSong = prev.currentSongIndex >= prev.queue.length - 1;
 
   if (isLastSong) {
+    if (prev.isRepeatOn) {
+      return {
+        ...prev,
+        currentSongIndex: 0,
+        progress: 0,
+        isPlaying: true,
+        playbackStart: { timestamp: Date.now(), progressAtStart: 0 },
+      };
+    }
     return { ...prev, isPlaying: false, playbackStart: null };
   }
 
@@ -122,6 +142,28 @@ function handleBackPlaybackStatus(prev: PlaybackStatus): PlaybackStatus {
   };
 }
 
+function getContextQueue(status: PlaybackStatus): Song[] {
+  if (status.isShuffled) {
+    const shuffledSongs = status.shuffleOrder.map(
+      (index) => status.queue[index],
+    );
+    const queue = shuffledSongs.slice(status.shufflePosition + 1);
+
+    if (status.isRepeatOn) {
+      return [...queue, ...shuffledSongs.slice(0, status.shufflePosition)];
+    }
+    return queue;
+  }
+
+  const queue = status.queue.slice(status.currentSongIndex + 1);
+
+  if (status.isRepeatOn) {
+    return [...queue, ...status.queue.slice(0, status.currentSongIndex)];
+  }
+
+  return queue;
+}
+
 export function PlaybackContextProvider({
   children,
   initialSongs,
@@ -129,7 +171,6 @@ export function PlaybackContextProvider({
   children: React.ReactNode;
   initialSongs: Song[];
 }>) {
-  const [dummy, setDummy] = useState(5);
   const [playbackStatus, setPlaybackStatus] = useState<PlaybackStatus>({
     queue: initialSongs,
     currentSongIndex: 0,
@@ -139,18 +180,26 @@ export function PlaybackContextProvider({
     isShuffled: false,
     shuffleOrder: [],
     shufflePosition: 0,
+    isRepeatOn: false,
   });
 
-  const { isPlaying, progress, isShuffled, queue, playbackStart } =
-    playbackStatus;
-  const currentSong = queue.at(playbackStatus.currentSongIndex);
+  const {
+    isPlaying,
+    progress,
+    isShuffled,
+    isRepeatOn,
+    queue,
+    playbackStart,
+    currentSongIndex,
+  } = playbackStatus;
+  const currentSong = queue.at(currentSongIndex);
 
   const handleNext = useCallback(() => {
-    if (currentSong && playbackStatus.progress < currentSong.duration) {
+    if (currentSong && progress < currentSong.duration) {
       recordPlaybackSkip(currentSong.id);
     }
     setPlaybackStatus((prev) => handleNextPlaybackStatus(prev));
-  }, [currentSong, playbackStatus.progress, setPlaybackStatus]);
+  }, [currentSong, progress, setPlaybackStatus]);
   const handleBack = useCallback(() => {
     setPlaybackStatus((prev) => handleBackPlaybackStatus(prev));
   }, [setPlaybackStatus]);
@@ -178,9 +227,11 @@ export function PlaybackContextProvider({
   return (
     <PlaybackContext
       value={{
-        isPlaying: isPlaying,
-        progress: progress,
-        isShuffled: isShuffled,
+        queue: getContextQueue(playbackStatus),
+        isPlaying,
+        progress,
+        isShuffled,
+        isRepeatOn,
         currentSong: currentSong ?? null,
         togglePlayback: () => {
           setPlaybackStatus((prev) =>
@@ -234,9 +285,12 @@ export function PlaybackContextProvider({
             };
           });
         },
-        // Dummy
-        dummy,
-        setDummy,
+        toggleRepeat: () => {
+          setPlaybackStatus((prev) => ({
+            ...prev,
+            isRepeatOn: !prev.isRepeatOn,
+          }));
+        },
       }}
     >
       {children}

@@ -6,6 +6,7 @@ import "./globals.css";
 import { NavBar } from "./NavBar";
 import { PlaybackBar } from "./PlaybackBar";
 import { PlaybackContextProvider } from "./PlaybackContextProvider";
+import { SideBar } from "./SideBar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -70,7 +71,10 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <PlaybackContextProvider initialSongs={initialSongs}>
-          <div className="pb-4">{children}</div>
+          <div className="pb-4 pr-32">{children}</div>
+          <div className="fixed top-0 bottom-0 right-0 pt-20 w-32">
+            <SideBar />
+          </div>
           <div className="fixed top-0 left-0 right-0">
             <NavBar />
           </div>

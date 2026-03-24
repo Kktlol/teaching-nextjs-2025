@@ -21,12 +21,14 @@ export function PlaybackBar(props: {
     isPlaying,
     progress,
     isShuffled,
+    isRepeatOn,
     currentSong,
     togglePlayback,
     seekTo,
     handleNext,
     handleBack,
     toggleShuffle,
+    toggleRepeat,
   } = useContext(PlaybackContext);
 
   const duration = currentSong?.duration || 0;
@@ -136,6 +138,32 @@ export function PlaybackBar(props: {
               className="swap-on w-4 h-4 text-primary"
             >
               <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.18 1.42-1.42zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z" />
+            </svg>
+          </label>
+
+          <label
+            className={`swap btn btn-circle btn-sm btn-ghost ${isRepeatOn ? "btn-active" : ""}`}
+          >
+            <input
+              type="checkbox"
+              checked={isRepeatOn}
+              onChange={toggleRepeat}
+            />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="swap-off w-4 h-4"
+            >
+              <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
+            </svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="swap-on w-4 h-4 text-primary"
+            >
+              <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
             </svg>
           </label>
         </div>

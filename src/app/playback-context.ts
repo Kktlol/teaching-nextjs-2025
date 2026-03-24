@@ -8,31 +8,31 @@ export interface Song {
 }
 
 interface PlaybackContextState {
+  queue: Song[];
   isPlaying: boolean;
   progress: number;
   isShuffled: boolean;
+  isRepeatOn: boolean;
   currentSong: Song | null;
   togglePlayback: () => void;
   seekTo: (newProgress: number) => void;
   handleNext: () => void;
   handleBack: () => void;
   toggleShuffle: () => void;
-  // Dummy
-  dummy: number;
-  setDummy: (dummy: number) => void;
+  toggleRepeat: () => void;
 }
 
 export const PlaybackContext = createContext<PlaybackContextState>({
+  queue: [],
   isPlaying: false,
   progress: 0,
   isShuffled: false,
+  isRepeatOn: false,
   currentSong: null,
   togglePlayback: () => {},
   seekTo: () => {},
   handleNext: () => {},
   handleBack: () => {},
   toggleShuffle: () => {},
-  // Dummy
-  dummy: 1,
-  setDummy: () => {},
+  toggleRepeat: () => {},
 });
